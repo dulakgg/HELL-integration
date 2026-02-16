@@ -1,16 +1,25 @@
 {
-	"geode": "4.10.0",
+	"geode": "5.0.0-beta.3",
 	"gd": {
-		"win": "2.2074",
-		"android": "2.2074",
-		"mac": "2.2074",
-		"ios": "2.2074"
+		"win": "2.2081",
+		"android": "2.2081",
+		"mac": "2.2081",
+		"ios": "2.2081"
 	},
 	"id": "dulak.hell-integration",
 	"name": "HELL Integration",
-	"version": "v1.0.0",
+	"version": "v1.0.1",
 	"developer": "dulak",
-	"description": "",
+	"links": {
+		"source": "https://github.com/dulakgg/HELL-integration",
+		"community": "https://discord.gg/hvfgKagDMk"
+	},
+	"description": "Hardest Easy Levels List integration.",
+	"issues": {
+		"info": "Submit problems on repo page (github) or @dulakgg on Discord.",
+		"url": "https://github.com/dulakgg/HELL-integration/issues"
+	},
+	"tags": ["universal", "online", "enhancement"],
 	"dependencies": {
 		"geode.node-ids": ">=v1.20.0"
 	}

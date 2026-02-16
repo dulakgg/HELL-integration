@@ -1,1 +1,3 @@
-Edit this file to change your mod's support info, or delete it if you don't need it.
+# Support
+
+Support me and my other projects on --> [Ko-Fi](https://ko-fi.com/dulakgg) <3

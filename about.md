@@ -1,3 +1,3 @@
-# Template Mod
+HELL Integration
 
-Edit about.md to change this
+Adds ranking next to the progress bars.
