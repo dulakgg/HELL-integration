@@ -1,14 +1,13 @@
 #include <Geode/Geode.hpp>
-#include <Geode/modify/LevelCell.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
-#include <Geode/modify/LevelSearchLayer.hpp>
+#include <Geode/utils/web.hpp>
 
 using namespace geode::prelude;
 
 class $modify(MyLevelInfoLayer, LevelInfoLayer) {
     struct Fields {
-        EventListener<web::WebTask> placementListener;
         CCLabelBMFont* placementLabel = nullptr;
+        async::TaskHolder<web::WebResponse> m_listener;
     };
 
     bool init(GJGameLevel* level, bool challenge) {
@@ -29,7 +28,7 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
 
         auto winSize = CCDirector::sharedDirector()->getWinSize();
 
-        auto label = CCLabelBMFont::create("N/A", "goldFont.fnt");
+        auto label = CCLabelBMFont::create("Loading...", "goldFont.fnt");
         label->setPosition({ winSize.width / 2.f + 140.f, winSize.height / 2.f - 55.f });
         label->setScale(0.5f);
 
@@ -42,67 +41,57 @@ class $modify(MyLevelInfoLayer, LevelInfoLayer) {
 
         int levelId = level->m_levelID;
 
-        auto url = std::string("https://script.google.com/macros/s/AKfycbxS9jpaqI_nY6FfLUOZD-SYQt-8i5OFa-1M5P0tJ8bhKupavdA7JMbGNhD4kAhmvDZj/exec");
+        auto req = web::WebRequest();
 
-        this->m_fields->placementListener.bind([self = Ref(this), levelId](web::WebTask::Event* e) {
-            if (!self) return;
+        m_fields->m_listener.spawn(
+            req.get("https://script.google.com/macros/s/AKfycbxS9jpaqI_nY6FfLUOZD-SYQt-8i5OFa-1M5P0tJ8bhKupavdA7JMbGNhD4kAhmvDZj/exec"),
+            [this, levelId](web::WebResponse res) {
+                if (!m_fields->placementLabel) return;
 
-            auto* res = e->getValue();
-            if (!res) {
-                queueInMainThread([self] {
-                    if (!self || !self->m_fields->placementLabel) return;
-                    self->m_fields->placementLabel->setString("...");
-                });
-                return;
-            }
+                if (!res.ok()) {
+                    m_fields->placementLabel->setString("Failed!");
+                    m_fields->placementLabel->setColor({ 255, 80, 80 });
+                    return;
+                }
 
-            auto parsed = res->json();
-            if (!parsed.isOk()) {
-                queueInMainThread([self] {
-                    if (!self || !self->m_fields->placementLabel) return;
-                    self->m_fields->placementLabel->setString("N/A");
-                });
-                return;
-            }
+                auto parsed = res.json();
+                if (!parsed.isOk()) {
+                    m_fields->placementLabel->setString("Failed!");
+                    m_fields->placementLabel->setColor({ 255, 80, 80 });
+                    return;
+                }
 
-            auto json = parsed.unwrap();
+                auto json = parsed.unwrap();
+                int placement = -1;
 
-            int placement = -1;
-
-            if (json.isArray()) {
-                auto arrRes = json.asArray();
-                if (arrRes.isOk()) {
-                    auto& arr = arrRes.unwrap();
-                    for (auto& item : arr) {
+                if (auto arrRes = json.asArray(); arrRes.isOk()) {
+                    for (auto& item : arrRes.unwrap()) {
                         if (!item.isObject()) continue;
 
-                        auto idRes = item["ID"].as<int>();
+                        auto idRes = item["ID"].template as<int>();
                         if (!idRes.isOk()) continue;
 
                         if (idRes.unwrap() == levelId) {
-                            auto placementRes = item["Placement"].as<int>();
+                            auto placementRes = item[" Ranking"].template as<int>();
                             if (placementRes.isOk()) {
                                 placement = placementRes.unwrap();
                             }
                             break;
                         }
                     }
+                } else {
+                    m_fields->placementLabel->setString("Failed!");
+                    m_fields->placementLabel->setColor({ 255, 80, 80 });
+                    return;
                 }
-            }
-
-            queueInMainThread([self, placement] {
-                if (!self || !self->m_fields->placementLabel) return;
 
                 if (placement > 0) {
-                    auto str = CCString::createWithFormat("No. %d", placement);
-                    self->m_fields->placementLabel->setString(str->getCString());
+                    auto str = fmt::format("No. {}", placement);
+                    m_fields->placementLabel->setString(str.c_str());
                 } else {
-                    self->m_fields->placementLabel->setString("N/A");
+                    m_fields->placementLabel->setString("N/A");
                 }
-            });
-        });
-
-        auto req = web::WebRequest();
-        this->m_fields->placementListener.setFilter(req.get(url));
+            }
+        );
     }
 };
